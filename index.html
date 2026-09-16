@@ -55,26 +55,34 @@
               <svg viewBox="0 0 24 24"><path d="M3 5h18v14H3V5Zm9 7 7-4H5l7 4Zm0 2.3L5 10.4V17h14v-6.6l-7 3.9Z" /></svg>
             </span>
             <div>
-              <h2 id="email-title">Vamos verificar seu e-mail</h2>
-              <p>Informe o endereço que ficará vinculado ao seu consentimento.</p>
+              <h2 id="email-title">Vamos verificar sua identificação</h2>
+              <p>Informe o e-mail e o CPF que ficarão vinculados ao seu consentimento.</p>
             </div>
           </div>
 
           <form id="email-form" novalidate>
-            <label for="email">E-mail</label>
-            <div class="input-wrap">
-              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 5h18v14H3V5Zm9 7 7-4H5l7 4Zm0 2.3L5 10.4V17h14v-6.6l-7 3.9Z" /></svg>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autocomplete="email"
-                inputmode="email"
-                placeholder="nome@empresa.com.br"
-                required
-              />
+            <div class="field-grid identity-grid">
+              <div class="field">
+                <label for="email">E-mail</label>
+                <div class="input-wrap">
+                  <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 5h18v14H3V5Zm9 7 7-4H5l7 4Zm0 2.3L5 10.4V17h14v-6.6l-7 3.9Z" /></svg>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autocomplete="email"
+                    inputmode="email"
+                    placeholder="nome@empresa.com.br"
+                    required
+                  />
+                </div>
+              </div>
+              <div class="field">
+                <label for="cpf">CPF</label>
+                <input id="cpf" name="cpf-identification" type="text" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" maxlength="14" required />
+              </div>
             </div>
-            <p class="field-help">Se este e-mail já tiver respondido, uma nova resposta não será permitida.</p>
+            <p class="field-help">Se este mesmo par de e-mail e CPF já tiver respondido, uma nova resposta não será permitida.</p>
             <div id="email-error" class="alert alert-error" role="alert" hidden></div>
             <button id="check-button" class="primary-button" type="submit">
               <span>Verificar e continuar</span>
@@ -96,12 +104,18 @@
             </div>
           </div>
 
-          <div class="verified-email">
-            <div>
-              <span>E-mail verificado para esta resposta</span>
-              <strong id="verified-email"></strong>
+          <div class="verified-email verified-identity">
+            <div class="verified-values">
+              <div>
+                <span>E-mail verificado</span>
+                <strong id="verified-email"></strong>
+              </div>
+              <div>
+                <span>CPF verificado</span>
+                <strong id="verified-cpf"></strong>
+              </div>
             </div>
-            <button id="change-email" type="button">Alterar</button>
+            <button id="change-email" type="button">Alterar identificação</button>
           </div>
 
           <form
@@ -111,17 +125,14 @@
             novalidate
           >
             <input id="submission-email" name="email" type="hidden" />
+            <input id="submission-cpf" name="cpf" type="hidden" />
             <input id="submission-token" name="token" type="hidden" />
             <input name="consent" type="hidden" value="true" />
 
             <div class="field-grid">
-              <div class="field field-wide">
+              <div class="field">
                 <label for="name">Nome completo</label>
                 <input id="name" name="name" type="text" autocomplete="name" required minlength="5" />
-              </div>
-              <div class="field">
-                <label for="cpf">CPF</label>
-                <input id="cpf" name="cpf" type="text" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" maxlength="14" required />
               </div>
               <div class="field">
                 <label for="phone">Telefone / WhatsApp</label>

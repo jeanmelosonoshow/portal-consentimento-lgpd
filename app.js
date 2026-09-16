@@ -22,6 +22,7 @@
   const liveStatus = document.querySelector("#live-status");
 
   let verifiedEmail = "";
+  let verifiedCpf = "";
   let verificationToken = "";
   let pollTimer = 0;
   let resultDeadline = 0;
@@ -30,6 +31,22 @@
 
   function normalizeEmail(value) {
     return String(value || "").trim().toLowerCase();
+  }
+
+  function cpfDigits(value) {
+    return String(value || "").replace(/\D/g, "").slice(0, 11);
+  }
+
+  function formatCpf(value) {
+    return cpfDigits(value)
+      .replace(/^(\d{3})(\d)/, "$1.$2")
+      .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+      .replace(/\.(\d{3})(\d)/, ".$1-$2");
+  }
+
+  function maskCpf(value) {
+    const digits = cpfDigits(value);
+    return digits.length === 11 ? `***.***.***-${digits.slice(-2)}` : "CPF informado";
   }
 
   function isValidEmail(value) {
@@ -117,8 +134,10 @@
     event.preventDefault();
     clearError(emailError);
     const email = normalizeEmail(emailInput.value);
+    const cpf = cpfDigits(cpfInput.value);
     emailInput.value = email;
     emailInput.removeAttribute("aria-invalid");
+    cpfInput.removeAttribute("aria-invalid");
 
     if (!isValidEmail(email)) {
       emailInput.setAttribute("aria-invalid", "true");
@@ -127,25 +146,35 @@
       return;
     }
 
+    if (!isValidCpf(cpf)) {
+      cpfInput.setAttribute("aria-invalid", "true");
+      showError(emailError, "Informe um CPF válido para continuar.");
+      cpfInput.focus();
+      return;
+    }
+
     setButtonLoading(checkButton, true, "Verificando…");
-    liveStatus.textContent = "Verificando o e-mail informado.";
+    liveStatus.textContent = "Verificando o par de e-mail e CPF informado.";
     try {
-      const emailHash = await sha256(email);
-      const result = await jsonp({ action: "check", emailHash });
+      const pairHash = await sha256(`${email}|${cpf}`);
+      const result = await jsonp({ action: "check", pairHash });
       if (!result || !result.ok) {
         showError(emailError, result?.message || "Não foi possível verificar o e-mail.");
         return;
       }
 
       verifiedEmail = email;
+      verifiedCpf = cpf;
       verificationToken = result.token;
       document.querySelector("#verified-email").textContent = email;
+      document.querySelector("#verified-cpf").textContent = maskCpf(cpf);
       document.querySelector("#submission-email").value = email;
+      document.querySelector("#submission-cpf").value = cpf;
       document.querySelector("#submission-token").value = verificationToken;
       clearError(consentError);
       showStage(consentStage);
       nameInput.focus({ preventScroll: true });
-      liveStatus.textContent = "E-mail disponível. Preencha os dados e revise o termo.";
+      liveStatus.textContent = "Identificação disponível. Preencha os dados e revise o termo.";
     } catch (error) {
       showError(emailError, "Não foi possível verificar agora. Confira sua conexão e tente novamente.");
     } finally {
@@ -156,20 +185,17 @@
   document.querySelector("#change-email").addEventListener("click", () => {
     stopPolling();
     verifiedEmail = "";
+    verifiedCpf = "";
     verificationToken = "";
     consentForm.reset();
     clearError(consentError);
     showStage(emailStage);
-    liveStatus.textContent = "Informe o e-mail que ficará vinculado ao consentimento.";
+    liveStatus.textContent = "Informe o e-mail e o CPF que ficarão vinculados ao consentimento.";
     emailInput.focus({ preventScroll: true });
   });
 
   cpfInput.addEventListener("input", () => {
-    const digits = cpfInput.value.replace(/\D/g, "").slice(0, 11);
-    cpfInput.value = digits
-      .replace(/^(\d{3})(\d)/, "$1.$2")
-      .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
-      .replace(/\.(\d{3})(\d)/, ".$1-$2");
+    cpfInput.value = formatCpf(cpfInput.value);
   });
 
   phoneInput.addEventListener("input", () => {
@@ -182,7 +208,7 @@
   });
 
   function isValidCpf(value) {
-    const cpf = value.replace(/\D/g, "");
+    const cpf = cpfDigits(value);
     if (!/^\d{11}$/.test(cpf) || /^(\d)\1{10}$/.test(cpf)) return false;
     for (let stage = 9; stage <= 10; stage += 1) {
       let sum = 0;
@@ -205,7 +231,6 @@
     const firstInvalid = [];
 
     if (name.length < 5 || name.split(" ").length < 2) firstInvalid.push([nameInput, "Informe seu nome completo."]);
-    else if (!isValidCpf(cpfInput.value)) firstInvalid.push([cpfInput, "Informe um CPF válido."]);
     else if (!/^\d{10,11}$/.test(phone)) firstInvalid.push([phoneInput, "Informe um telefone com DDD válido."]);
     else if (!consentCheckbox.checked) firstInvalid.push([consentCheckbox, "É necessário aceitar a declaração de consentimento."]);
 
@@ -218,8 +243,8 @@
       return;
     }
 
-    if (!verifiedEmail || !verificationToken) {
-      showError(consentError, "A verificação do e-mail expirou. Verifique novamente.");
+    if (!verifiedEmail || !verifiedCpf || !verificationToken) {
+      showError(consentError, "A verificação da identificação expirou. Verifique novamente.");
       showStage(emailStage);
       return;
     }
