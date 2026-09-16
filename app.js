@@ -2,7 +2,7 @@
   "use strict";
 
   const BACKEND_URL = "https://script.google.com/macros/s/AKfycbxeFxtsiKVvtIP6FTisNZCZITp32TrlEKDiZLjpoCYMshJR1YSKBWOeprH1_FJ8pC0H/exec";
-  const REQUEST_TIMEOUT = 30000;
+  const REQUEST_TIMEOUT = 60000;
   const RESULT_TIMEOUT = 60000;
 
   const emailStage = document.querySelector("#email-stage");
