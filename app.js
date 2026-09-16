@@ -2,7 +2,7 @@
   "use strict";
 
   const BACKEND_URL = "https://script.google.com/macros/s/AKfycbxeFxtsiKVvtIP6FTisNZCZITp32TrlEKDiZLjpoCYMshJR1YSKBWOeprH1_FJ8pC0H/exec";
-  const REQUEST_TIMEOUT = 30000;
+  const REQUEST_TIMEOUT = 60000;
   const RESULT_TIMEOUT = 60000;
 
   const emailStage = document.querySelector("#email-stage");
@@ -54,9 +54,88 @@
   }
 
   async function sha256(value) {
-    const bytes = new TextEncoder().encode(value);
-    const digest = await crypto.subtle.digest("SHA-256", bytes);
-    return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
+    if (window.isSecureContext && window.crypto?.subtle && window.TextEncoder) {
+      const bytes = new TextEncoder().encode(value);
+      const digest = await window.crypto.subtle.digest("SHA-256", bytes);
+      return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
+    }
+    return sha256Fallback(value);
+  }
+
+  function sha256Fallback(value) {
+    const rightRotate = (number, amount) => (number >>> amount) | (number << (32 - amount));
+    const maxWord = 2 ** 32;
+    const words = [];
+    const hash = [];
+    const constants = [];
+    const bytes = [];
+
+    for (const character of String(value)) {
+      const codePoint = character.codePointAt(0);
+      if (codePoint < 0x80) bytes.push(codePoint);
+      else if (codePoint < 0x800) {
+        bytes.push(0xc0 | (codePoint >> 6), 0x80 | (codePoint & 0x3f));
+      } else if (codePoint < 0x10000) {
+        bytes.push(0xe0 | (codePoint >> 12), 0x80 | ((codePoint >> 6) & 0x3f), 0x80 | (codePoint & 0x3f));
+      } else {
+        bytes.push(
+          0xf0 | (codePoint >> 18),
+          0x80 | ((codePoint >> 12) & 0x3f),
+          0x80 | ((codePoint >> 6) & 0x3f),
+          0x80 | (codePoint & 0x3f)
+        );
+      }
+    }
+
+    for (let candidate = 2, primeCount = 0; primeCount < 64; candidate += 1) {
+      let isPrime = true;
+      for (let divisor = 2; divisor * divisor <= candidate; divisor += 1) {
+        if (candidate % divisor === 0) {
+          isPrime = false;
+          break;
+        }
+      }
+      if (!isPrime) continue;
+      if (primeCount < 8) hash[primeCount] = (Math.sqrt(candidate) * maxWord) | 0;
+      constants[primeCount] = (Math.cbrt(candidate) * maxWord) | 0;
+      primeCount += 1;
+    }
+
+    const bitLength = bytes.length * 8;
+    bytes.push(0x80);
+    while (bytes.length % 64 !== 56) bytes.push(0);
+    for (let shift = 56; shift >= 0; shift -= 8) bytes.push(Math.floor(bitLength / (2 ** shift)) & 0xff);
+    for (let index = 0; index < bytes.length; index += 4) {
+      words.push((bytes[index] << 24) | (bytes[index + 1] << 16) | (bytes[index + 2] << 8) | bytes[index + 3]);
+    }
+
+    for (let chunk = 0; chunk < words.length; chunk += 16) {
+      const oldHash = hash.slice();
+      const schedule = words.slice(chunk, chunk + 16);
+      for (let round = 0; round < 64; round += 1) {
+        if (round >= 16) {
+          const w15 = schedule[round - 15];
+          const w2 = schedule[round - 2];
+          const sigma0 = rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3);
+          const sigma1 = rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10);
+          schedule[round] = (schedule[round - 16] + sigma0 + schedule[round - 7] + sigma1) | 0;
+        }
+        const a = hash[0];
+        const e = hash[4];
+        const choice = (e & hash[5]) ^ (~e & hash[6]);
+        const majority = (a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]);
+        const sum0 = rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22);
+        const sum1 = rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25);
+        const temp1 = (hash[7] + sum1 + choice + constants[round] + schedule[round]) | 0;
+        const temp2 = (sum0 + majority) | 0;
+        hash.unshift((temp1 + temp2) | 0);
+        hash[4] = (hash[4] + temp1) | 0;
+        hash.pop();
+      }
+      hash.forEach((item, index) => { hash[index] = (item + oldHash[index]) | 0; });
+    }
+
+    return hash.map(item => (item >>> 0).toString(16).padStart(8, "0")).join("");
   }
 
   function jsonp(params, timeout = REQUEST_TIMEOUT) {
@@ -176,7 +255,11 @@
       nameInput.focus({ preventScroll: true });
       liveStatus.textContent = "Identificação disponível. Preencha os dados e revise o termo.";
     } catch (error) {
-      showError(emailError, "Não foi possível verificar agora. Confira sua conexão e tente novamente.");
+      console.error("Falha ao verificar a identificação:", error);
+      const timedOut = String(error?.message || "").includes("Tempo de resposta");
+      showError(emailError, timedOut
+        ? "O serviço demorou mais que o esperado. Aguarde alguns segundos e tente novamente."
+        : "Não foi possível verificar agora. Confira sua conexão e tente novamente.");
     } finally {
       setButtonLoading(checkButton, false, "");
     }
