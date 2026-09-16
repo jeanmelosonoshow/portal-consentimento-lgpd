@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#0b2447" />
+    <meta
+      name="description"
+      content="Portal de consentimento LGPD da Sono Show Móveis para participação no Club Moveleiro."
+    />
+    <title>Consentimento LGPD | Sono Show</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="portal-card" aria-labelledby="portal-title">
+        <header class="brand-header">
+          <div class="brand-mark" aria-hidden="true">SS</div>
+          <div>
+            <p class="eyebrow">Sono Show Móveis</p>
+            <h1 id="portal-title">Consentimento para o Club Moveleiro</h1>
+          </div>
+          <div class="security-seal" aria-label="Ambiente de consentimento protegido">
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M12 3 5 6v5c0 4.8 2.9 8.3 7 10 4.1-1.7 7-5.2 7-10V6l-7-3Zm3.4 7.1-4 4a1 1 0 0 1-1.4 0l-1.7-1.7 1.4-1.4 1 1 3.3-3.3 1.4 1.4Z" />
+            </svg>
+            <span>LGPD</span>
+          </div>
+        </header>
+
+        <div class="stepper" aria-label="Etapas do consentimento">
+          <div class="step is-active" data-step="1">
+            <span>1</span>
+            <strong>Identificação</strong>
+          </div>
+          <div class="step-line" aria-hidden="true"></div>
+          <div class="step" data-step="2">
+            <span>2</span>
+            <strong>Consentimento</strong>
+          </div>
+          <div class="step-line" aria-hidden="true"></div>
+          <div class="step" data-step="3">
+            <span>3</span>
+            <strong>Concluído</strong>
+          </div>
+        </div>
+
+        <div id="live-status" class="sr-only" aria-live="polite"></div>
+
+        <section id="email-stage" class="stage" aria-labelledby="email-title">
+          <div class="stage-heading">
+            <span class="stage-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M3 5h18v14H3V5Zm9 7 7-4H5l7 4Zm0 2.3L5 10.4V17h14v-6.6l-7 3.9Z" /></svg>
+            </span>
+            <div>
+              <h2 id="email-title">Vamos verificar seu e-mail</h2>
+              <p>Informe o endereço que ficará vinculado ao seu consentimento.</p>
+            </div>
+          </div>
+
+          <form id="email-form" novalidate>
+            <label for="email">E-mail</label>
+            <div class="input-wrap">
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 5h18v14H3V5Zm9 7 7-4H5l7 4Zm0 2.3L5 10.4V17h14v-6.6l-7 3.9Z" /></svg>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autocomplete="email"
+                inputmode="email"
+                placeholder="nome@empresa.com.br"
+                required
+              />
+            </div>
+            <p class="field-help">Se este e-mail já tiver respondido, uma nova resposta não será permitida.</p>
+            <div id="email-error" class="alert alert-error" role="alert" hidden></div>
+            <button id="check-button" class="primary-button" type="submit">
+              <span>Verificar e continuar</span>
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m13 5 7 7-7 7-1.4-1.4 4.6-4.6H4v-2h12.2l-4.6-4.6L13 5Z" /></svg>
+            </button>
+          </form>
+
+          <div class="privacy-note">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2a5 5 0 0 0-5 5v2H5v13h14V9h-2V7a5 5 0 0 0-5-5Zm-3 7V7a3 3 0 0 1 6 0v2H9Zm2 4h2v5h-2v-5Z" /></svg>
+            <p><strong>Privacidade desde o início.</strong> Esta página não utiliza a conta Google conectada ao navegador.</p>
+          </div>
+        </section>
+
+        <section id="consent-stage" class="stage" aria-labelledby="consent-title" hidden>
+          <div class="stage-heading compact">
+            <div>
+              <h2 id="consent-title">Confirme seus dados e o consentimento</h2>
+              <p>Revise o termo antes de registrar sua autorização.</p>
+            </div>
+          </div>
+
+          <div class="verified-email">
+            <div>
+              <span>E-mail verificado para esta resposta</span>
+              <strong id="verified-email"></strong>
+            </div>
+            <button id="change-email" type="button">Alterar</button>
+          </div>
+
+          <form
+            id="consent-form"
+            method="post"
+            target="backend-frame"
+            novalidate
+          >
+            <input id="submission-email" name="email" type="hidden" />
+            <input id="submission-token" name="token" type="hidden" />
+            <input name="consent" type="hidden" value="true" />
+
+            <div class="field-grid">
+              <div class="field field-wide">
+                <label for="name">Nome completo</label>
+                <input id="name" name="name" type="text" autocomplete="name" required minlength="5" />
+              </div>
+              <div class="field">
+                <label for="cpf">CPF</label>
+                <input id="cpf" name="cpf" type="text" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" maxlength="14" required />
+              </div>
+              <div class="field">
+                <label for="phone">Telefone / WhatsApp</label>
+                <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(00) 00000-0000" maxlength="15" required />
+              </div>
+            </div>
+
+            <article class="term-card" aria-labelledby="term-title">
+              <header>
+                <div>
+                  <p>Documento apresentado ao participante</p>
+                  <h3 id="term-title">Termo de tratamento de dados pessoais</h3>
+                </div>
+                <span>Versão v1</span>
+              </header>
+              <div class="term-content" tabindex="0">
+                <p>Este documento visa registrar a sua ciência e autorização expressa para o tratamento de seus dados pessoais pela Sono Show Móveis, em conformidade com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018 - LGPD).</p>
+                <p><strong>1. Finalidade do Tratamento:</strong> Seus dados pessoais (Nome Completo, CPF, Telefone e Dados Bancários) serão coletados e compartilhados exclusivamente com a plataforma <strong>Club Moveleiro</strong> para fins de cadastro no programa de incentivos, recebimento de bonificações ou pagamentos.</p>
+                <p><strong>2. Armazenamento e Segurança:</strong> A Sono Show Móveis e a plataforma Club Moveleiro adotam medidas técnicas e administrativas adequadas para proteger seus dados contra acessos não autorizados.</p>
+                <p><strong>3. Direitos do Titular:</strong> Você poderá, a qualquer momento, solicitar a confirmação da existência do tratamento, o acesso aos seus dados ou a revogação deste consentimento mediante solicitação ao setor de RH/DPO pelo e-mail: <a href="mailto:pessoal@sonoshow.com.br">pessoal@sonoshow.com.br</a> com cópia para <a href="mailto:jean.melo@sonoshow.com.br">jean.melo@sonoshow.com.br</a>.</p>
+              </div>
+            </article>
+
+            <label class="consent-check" for="consent-checkbox">
+              <input id="consent-checkbox" type="checkbox" required />
+              <span class="custom-check" aria-hidden="true"></span>
+              <span>Li e concordo com os termos expostos acima, autorizando expressamente a Sono Show Móveis a tratar e compartilhar meus dados pessoais e bancários com a plataforma Club Moveleiro para as finalidades descritas.</span>
+            </label>
+
+            <div id="consent-error" class="alert alert-error" role="alert" hidden></div>
+            <button id="submit-button" class="primary-button" type="submit">
+              <span>Registrar consentimento</span>
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2Z" /></svg>
+            </button>
+            <p class="submission-note">Ao concluir, um comprovante em PDF será salvo e enviado por e-mail.</p>
+          </form>
+        </section>
+
+        <section id="success-stage" class="stage success-stage" aria-labelledby="success-title" hidden>
+          <div class="success-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2Z" /></svg>
+          </div>
+          <p class="eyebrow">Registro concluído</p>
+          <h2 id="success-title">Consentimento registrado com sucesso</h2>
+          <p>O comprovante em PDF foi enviado ao e-mail informado e à Sono Show Móveis.</p>
+          <div class="success-details">
+            <span>Comprovante enviado para</span>
+            <strong id="success-email"></strong>
+          </div>
+        </section>
+
+        <iframe id="backend-frame" name="backend-frame" title="Processamento do consentimento" hidden></iframe>
+
+        <footer>
+          <span>Sono Show Móveis</span>
+          <span aria-hidden="true">•</span>
+          <span>Tratamento responsável de dados pessoais</span>
+        </footer>
+      </section>
+    </main>
+  </body>
+</html>
