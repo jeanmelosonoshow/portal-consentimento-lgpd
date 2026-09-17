@@ -1,7 +1,6 @@
 (() => {
   "use strict";
 
-  const BACKEND_URL = "https://script.google.com/macros/s/AKfycbxeFxtsiKVvtIP6FTisNZCZITp32TrlEKDiZLjpoCYMshJR1YSKBWOeprH1_FJ8pC0H/exec";
   const REQUEST_TIMEOUT = 60000;
   const RESULT_TIMEOUT = 60000;
 
@@ -26,8 +25,6 @@
   let verificationToken = "";
   let pollTimer = 0;
   let resultDeadline = 0;
-
-  consentForm.action = BACKEND_URL;
 
   function normalizeEmail(value) {
     return String(value || "").trim().toLowerCase();
@@ -138,28 +135,23 @@
     return hash.map(item => (item >>> 0).toString(16).padStart(8, "0")).join("");
   }
 
-  function jsonp(params, timeout = REQUEST_TIMEOUT) {
-    return new Promise((resolve, reject) => {
-      const callbackName = `__sonoShow_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-      const script = document.createElement("script");
-      const timer = window.setTimeout(() => finish(new Error("Tempo de resposta excedido.")), timeout);
-
-      function finish(error, data) {
-        window.clearTimeout(timer);
-        script.remove();
-        try { delete window[callbackName]; } catch (_) { window[callbackName] = undefined; }
-        if (error) reject(error);
-        else resolve(data);
-      }
-
-      window[callbackName] = data => finish(null, data);
-      script.onerror = () => finish(new Error("Não foi possível acessar o serviço de consentimento."));
-      const url = new URL(BACKEND_URL);
-      Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
-      url.searchParams.set("callback", callbackName);
-      script.src = url.toString();
-      document.head.appendChild(script);
-    });
+  async function apiRequest(path, options = {}, timeout = REQUEST_TIMEOUT) {
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), timeout);
+    try {
+      const response = await fetch(path, {
+        ...options,
+        headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+        signal: controller.signal,
+        credentials: "same-origin",
+        cache: "no-store"
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result?.message || "Serviço indisponível.");
+      return result;
+    } finally {
+      window.clearTimeout(timer);
+    }
   }
 
   function setButtonLoading(button, loading, loadingText) {
@@ -237,7 +229,10 @@
     try {
       const pairHash = await sha256(`${email}|${cpf}`);
       const cpfHash = await sha256(cpf);
-      const result = await jsonp({ action: "check", pairHash, cpfHash });
+      const result = await apiRequest("/api/check", {
+        method: "POST",
+        body: JSON.stringify({ pairHash, cpfHash })
+      });
       if (!result || !result.ok) {
         showError(emailError, result?.message || "Não foi possível verificar o e-mail.");
         return;
@@ -306,7 +301,7 @@
     return true;
   }
 
-  consentForm.addEventListener("submit", event => {
+  consentForm.addEventListener("submit", async event => {
     event.preventDefault();
     clearError(consentError);
 
@@ -337,8 +332,19 @@
     setButtonLoading(submitButton, true, "Registrando…");
     liveStatus.textContent = "Registrando o consentimento e criando o comprovante.";
     resultDeadline = Date.now() + RESULT_TIMEOUT;
-    HTMLFormElement.prototype.submit.call(consentForm);
-    window.setTimeout(pollResult, 800);
+    try {
+      const result = await apiRequest("/api/submit", {
+        method: "POST",
+        body: JSON.stringify({ email: verifiedEmail, cpf: verifiedCpf, token: verificationToken, name, phone })
+      });
+      if (!result?.ok) throw new Error(result?.message || "Não foi possível registrar o consentimento.");
+      window.setTimeout(pollResult, 800);
+    } catch (error) {
+      setButtonLoading(submitButton, false, "");
+      showError(consentError, error.name === "AbortError"
+        ? "O serviço demorou mais que o esperado. Tente novamente."
+        : (error.message || "Não foi possível registrar agora. Tente novamente."));
+    }
   });
 
   async function pollResult() {
@@ -350,7 +356,7 @@
     }
 
     try {
-      const result = await jsonp({ action: "status", token: verificationToken }, 15000);
+      const result = await apiRequest(`/api/status?token=${encodeURIComponent(verificationToken)}`, {}, 15000);
       if (result?.pending) {
         pollTimer = window.setTimeout(pollResult, 1200);
         return;

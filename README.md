@@ -2,14 +2,26 @@
 
 Interface pública do processo de consentimento para participação no Club Moveleiro.
 
-O portal é hospedado no GitHub Pages. A verificação de duplicidade, o registro na
-planilha, a geração do comprovante em PDF e o envio dos e-mails são processados por
-um backend no Google Apps Script.
+O portal é hospedado na Vercel. A Vercel funciona como uma API intermediária
+same-origin e encaminha as operações ao Google Apps Script, que continua responsável
+pela verificação de duplicidade, registro na planilha, geração do comprovante em PDF
+e envio dos e-mails.
 
 ## Publicação
 
-Qualquer alteração enviada para a branch `main` aciona a publicação automática no
-GitHub Pages.
+Qualquer alteração enviada para a branch conectada aciona a publicação automática
+na Vercel.
+
+## Configuração da Vercel
+
+1. Importe este repositório no projeto da Vercel.
+2. Se solicitado, use o preset **Other** e deixe o comando de build vazio.
+3. Crie a variável de ambiente `APPS_SCRIPT_URL` com o URL `/exec` da implantação
+   pública do Apps Script.
+4. Faça um redeploy após salvar a variável.
+
+O arquivo `.env.example` contém o formato esperado. Não coloque chaves privadas,
+tokens ou dados pessoais no repositório.
 
 ## Incorporação
 
@@ -17,7 +29,7 @@ Após a primeira publicação, o portal pode ser incorporado em outra página co
 
 ```html
 <iframe
-  src="https://jeanmelosonoshow.github.io/portal-consentimento-lgpd/"
+  src="https://SEU-PROJETO.vercel.app/"
   title="Consentimento LGPD — Sono Show"
   width="100%"
   height="1000"
