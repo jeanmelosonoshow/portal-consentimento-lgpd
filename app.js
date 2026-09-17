@@ -236,7 +236,8 @@
     liveStatus.textContent = "Verificando o par de e-mail e CPF informado.";
     try {
       const pairHash = await sha256(`${email}|${cpf}`);
-      const result = await jsonp({ action: "check", pairHash });
+      const cpfHash = await sha256(cpf);
+      const result = await jsonp({ action: "check", pairHash, cpfHash });
       if (!result || !result.ok) {
         showError(emailError, result?.message || "Não foi possível verificar o e-mail.");
         return;
